@@ -1,7 +1,11 @@
 buildscript {
   repositories {
     maven { url 'https://plugins.gradle.org/m2/' }
-  } 
+  }
+}
+
+plugins {
+  id "com.jfrog.bintray" version "1.7.3"
 }
 
 repositories {
@@ -10,7 +14,21 @@ repositories {
 
 apply plugin: 'java'
 
+task javadocJar(type: Jar, dependsOn: 'javadoc') {
+  from javadoc.destinationDir
+  classifier = 'javadoc'
+}
+
+task sourceJar(type: Jar, dependsOn: 'classes') {
+  from sourceSets.main.allSource
+  classifier = 'sources'
+}
+
 apply plugin: 'checkstyle'
+
+apply plugin: 'maven'
+
+apply plugin: 'maven-publish'
 
 checkstyle {
   toolVersion = '6.19'
@@ -21,4 +39,41 @@ dependencies {
   testCompile 'junit:junit:4.12'
   testCompile 'com.google.truth:truth:0.28'
   testCompile 'com.google.testing.compile:compile-testing:0.9'
+}
+
+publishing {
+  publications {
+    RegexChecker(MavenPublication) {
+      from components.java
+      groupId 'org.kinrill.annotation.regex'
+      artifactId 'regex'
+      version '0.1'
+      artifact sourceJar
+      artifact javadocJar
+    }
+  }
+}
+
+bintray {
+  user = project.hasProperty('bintrayUser') ?
+    project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+  key = project.hasProperty('bintrayApiKey') ?
+    project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+  publications = ['RegexChecker']
+  override = true
+  publish = true
+  pkg {
+    repo = 'regex-checker'
+    name = 'regex-checker'
+    websiteUrl = 'https://github.com/kinrill/regex-checker'
+    issueTrackerUrl = 'https://github.com/kinrill/regex-checker/issues'
+    licenses = ['Apache-2.0']
+    vcsUrl = 'https://github.com/kinrill/regex-checker.git'
+    version {
+      name = '0.1'
+      desc = 'regex annotation checker 0.1'
+      released  = new Date()
+      vcsTag = 'release-0.1'
+    }
+  }
 }
